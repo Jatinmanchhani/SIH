@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+pydantic
+pyyaml
+openai
+scikit-learn
+numpy
+python-docx
+pytesseract
+pillow
+psutil
