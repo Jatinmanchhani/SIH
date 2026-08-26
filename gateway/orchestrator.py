@@ -28,6 +28,26 @@ from tools import sandbox, file_tools, rag, docgen
 from ocr import pipeline as ocr_pipeline
 
 MAX_ITERATIONS = 8
+SAMPLE_DATA_ROOT = (Path(__file__).parent.parent / "sample_data").resolve()
+
+
+def _resolve_in_sample_data(name: str) -> Path:
+    """
+    Confines a model-supplied filename to sample_data/, the same way file_tools._resolve_safe
+    confines everything under workspace/. Tool arguments (relative_path, reference_no) come
+    straight from the LLM's tool call — once RealLLMClient is live, that means they can be
+    influenced by anything the model has read (a prompt-injected scanned document, a poisoned
+    SOP, etc.), so they're untrusted input and must never be joined onto a filesystem path
+    without this check. Rejects any path that escapes sample_data/ (e.g. "../../etc/passwd")
+    or that isn't a plain filename (e.g. absolute paths).
+    """
+    candidate = (SAMPLE_DATA_ROOT / name).resolve()
+    if SAMPLE_DATA_ROOT != candidate and SAMPLE_DATA_ROOT not in candidate.parents:
+        raise file_tools.PathEscapeError(
+            f"'{name}' escapes sample_data/ — refused. Tool arguments are untrusted "
+            "model output and must not be used to build filesystem paths directly."
+        )
+    return candidate
 
 
 # --- Tool schema (OpenAI function-calling format) ---------------------------
@@ -98,7 +118,12 @@ TOOL_SCHEMA = [
 # --- Tool dispatch ------------------------------------------------------------
 def execute_tool(name: str, args: dict[str, Any], rag_store: rag.VectorStore) -> str:
     if name == "extract_from_image":
-        path = Path(__file__).parent.parent / "sample_data" / args["relative_path"]
+        try:
+            path = _resolve_in_sample_data(args["relative_path"])
+        except file_tools.PathEscapeError as e:
+            return json.dumps({"error": str(e)})
+        if not path.exists():
+            return json.dumps({"error": f"'{args['relative_path']}' not found in sample_data"})
         result = ocr_pipeline.extract(path)
         return json.dumps({"text": result.text, "confidence": result.mean_confidence})
 
@@ -107,11 +132,21 @@ def execute_tool(name: str, args: dict[str, Any], rag_store: rag.VectorStore) ->
         return json.dumps([{"source": h.source, "text": h.text, "score": h.score} for h in hits])
 
     if name == "run_code":
-        box = sandbox.get_sandbox()
+        try:
+            box = sandbox.get_sandbox()
+        except sandbox.SandboxUnavailableError as e:
+            return json.dumps({"error": str(e)})
         result = box.run_python(args["code"])
-        return json.dumps({"stdout": result.stdout, "stderr": result.stderr, "exit_code": result.exit_code})
+        return json.dumps({
+            "stdout": result.stdout, "stderr": result.stderr,
+            "exit_code": result.exit_code, "backend": result.backend,
+        })
 
     if name == "generate_approval_note":
+        try:
+            out_path = _resolve_in_sample_data(f"{args['reference_no']}.docx")
+        except file_tools.PathEscapeError as e:
+            return json.dumps({"error": str(e)})
         note = docgen.ApprovalNote(
             title=args["title"],
             reference_no=args["reference_no"],
@@ -119,7 +154,6 @@ def execute_tool(name: str, args: dict[str, Any], rag_store: rag.VectorStore) ->
             findings=[docgen.Finding(**f) for f in args["findings"]],
             recommendation=args["recommendation"],
         )
-        out_path = Path(__file__).parent.parent / "sample_data" / f"{args['reference_no']}.docx"
         docgen.build_approval_note(note, out_path)
         return json.dumps({"status": "written", "path": str(out_path)})
 

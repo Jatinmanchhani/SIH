@@ -23,6 +23,12 @@ uvicorn main:app --reload --port 8000
 
 Open `http://localhost:8000`. The UI works as a polished operator-console prototype even before models are installed. With the API running, the document task executes the actual demo workflow and writes `sample_data/AN-2026-DEMO.docx`.
 
+Code execution (`run_code`) requires a local Docker daemon by default — this is what enforces the "no network access" guarantee, so the gateway refuses to run generated code without it rather than silently falling back to an unisolated subprocess. If you're developing on a machine without Docker and only need to exercise the rest of the loop, opt into the weaker fallback explicitly:
+
+cd gateway python -m pip install -r requirements.txt pytest pytest
+
+Covers routing rules, retrieval, the docgen path, and — most importantly — that tool arguments (`relative_path`, `reference_no`) can't be used to escape `sample_data/` even if a compromised or prompt-injected model tries to supply something like `../../etc/passwd`.
+
 ## GPU deployment
 
 On the demonstration workstation, pre-download the selected open-weight models to Ollama, then switch `DEMO_MODE = False` in `gateway/main.py`. The same router and agent loop use `RealLLMClient`, which supports any OpenAI-compatible local endpoint (Ollama, vLLM, or llama.cpp).
@@ -66,3 +72,4 @@ docker-compose.yml        GPU-capable, internal-network deployment
 ## Current scope
 
 The repository provides a functional orchestration and document-output proof using `MockLLMClient` for a machine without locally downloaded weights. Before the final on-GPU presentation, activate a local open-weight endpoint, replace the basic TF-IDF store with Qdrant plus local embeddings for a large corpus, and connect the existing VLM hook for handwriting/P&ID interpretation. No confidential document needs to leave the deployment environment at any point.
+

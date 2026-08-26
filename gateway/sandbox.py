@@ -11,11 +11,16 @@ Two backends, same interface:
 """
 
 from __future__ import annotations
+import os
 import subprocess
 import tempfile
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
+
+
+class SandboxUnavailableError(RuntimeError):
+    """Raised when Docker isolation is required but no Docker daemon is reachable."""
 
 
 @dataclass
@@ -104,15 +109,47 @@ class SubprocessSandbox:
             shutil.rmtree(tmp, ignore_errors=True)
 
 
-def get_sandbox(prefer_docker: bool = True):
-    """Picks DockerSandbox if a daemon is reachable, else falls back with a clear warning."""
-    if prefer_docker:
-        try:
-            subprocess.run(["docker", "info"], capture_output=True, timeout=3, check=True)
+def _docker_available() -> bool:
+    try:
+        subprocess.run(["docker", "info"], capture_output=True, timeout=3, check=True)
+        return True
+    except Exception:
+        return False
+
+
+def get_sandbox(prefer_docker: bool = True, require_docker: bool | None = None):
+    """
+    Picks DockerSandbox if a daemon is reachable.
+
+    require_docker controls what happens when it isn't:
+      - True  -> raise SandboxUnavailableError. Model-generated code never runs with
+                 full host network/filesystem access, even silently or "just this once".
+      - False -> fall back to SubprocessSandbox (host network, host filesystem visible).
+                 Only appropriate for local development, never for the actual demo/deployment.
+      - None (default) -> read REQUIRE_DOCKER_SANDBOX from the environment, defaulting to
+                 True. This means an unconfigured deployment fails loudly instead of quietly
+                 losing its air-gap guarantee for code execution.
+
+    A print() warning is not a substitute for this: it's easy to miss on a live-streamed
+    demo, and "code sandbox with no network access" is a headline claim of this project,
+    so its absence should be a hard stop by default, not a soft warning.
+    """
+    if require_docker is None:
+        require_docker = os.environ.get("REQUIRE_DOCKER_SANDBOX", "true").lower() != "false"
+
+    if prefer_docker or require_docker:
+        if _docker_available():
             return DockerSandbox()
-        except Exception:
-            print("[sandbox] No Docker daemon found — falling back to SubprocessSandbox. "
-                  "Use DockerSandbox for your actual demo to keep the network-none guarantee.")
+        if require_docker:
+            raise SandboxUnavailableError(
+                "No Docker daemon found and REQUIRE_DOCKER_SANDBOX is not disabled. "
+                "Refusing to run model-generated code outside the network-isolated sandbox. "
+                "Start Docker, or explicitly set REQUIRE_DOCKER_SANDBOX=false for local "
+                "development only (SubprocessSandbox shares the host network and filesystem)."
+            )
+        print("[sandbox] No Docker daemon found — falling back to SubprocessSandbox. "
+              "This has NO network isolation. Set REQUIRE_DOCKER_SANDBOX=false explicitly "
+              "if this is intentional (development only, never your actual demo).")
     return SubprocessSandbox()
 
 
