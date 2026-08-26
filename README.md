@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Sovereign AI Workbench — SIH prototype
 
 An air-gapped, multi-model agentic assistant for industrial knowledge work: reads scanned
@@ -102,3 +103,7 @@ sample_data/               Sample SOPs + sample scanned report used in all the t
 - `SubprocessSandbox` is a development fallback, not what you should demo — it shares
   the host network. Confirm `DockerSandbox` is actually active (`get_sandbox()` prints
   which backend it picked) before your run.
+=======
+# SIH
+Problem Statement 117
+>>>>>>> e70e578511f4e47a8ee9a10a777f53346bd8feeb
