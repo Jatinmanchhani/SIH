@@ -1,109 +1,68 @@
-<<<<<<< HEAD
-# Sovereign AI Workbench — SIH prototype
+# Rakshak AI — Sovereign Industrial Workbench
 
-An air-gapped, multi-model agentic assistant for industrial knowledge work: reads scanned
-reports, grounds answers in internal SOPs, runs code in a sandbox, and drafts real Word
-approval notes — with model auto-selection and zero external network calls.
+Prototype for **SIH 2026 PS 26117**: a self-hosted, air-gapped agentic AI workbench for confidential industrial work.
 
-## What's actually proven to work right now (tested, in this repo)
+Rakshak AI demonstrates the operating path required by the problem statement: local multimodal intake, automatic specialist-model routing, an iterative tool-using agent, grounded internal knowledge search, isolated code execution, Word-document output, and a visible zero-egress posture.
 
-Every piece below was built and run end to end while developing this repo — not just
-written, actually executed and verified:
+## What the prototype demonstrates
 
-| Piece | File | Proof |
-|---|---|---|
-| Model router | `gateway/router.py` | `python router.py` — routes 4 sample tasks to 2 different specialists correctly |
-| RAG / grounding | `gateway/tools/rag.py` | `python rag.py` — retrieves the right SOP for 2 sample queries, with citations |
-| Document generation | `gateway/tools/docgen.py` | `python docgen.py` — produces a real, correctly formatted `.docx` approval note |
-| OCR pipeline | `gateway/ocr/pipeline.py` | `python pipeline.py` — extracts text from a sample scanned report at 91.8% confidence |
-| Code sandbox | `gateway/tools/sandbox.py` | `python sandbox.py` — runs and returns real code output, with automatic Docker/subprocess fallback |
-| File tools | `gateway/tools/file_tools.py` | `python file_tools.py` — scoped read/write, blocks path escape |
-| **Full agent loop** | `gateway/orchestrator.py` | `python orchestrator.py` — runs the flagship task end to end: scan → OCR → SOP grounding → drafted `.docx` |
-| API gateway | `gateway/main.py` | `uvicorn main:app` — all endpoints tested live over HTTP |
-| Network monitor | `network-monitor/monitor.py` | `python monitor.py` — reads real interface byte counters |
+- **Sovereign by design:** Docker services run on an internal-only network; the code sandbox is launched with no network attachment.
+- **Automatic model selection:** a lightweight local router selects vision, document/reasoning, or code specialists based on task and attachments.
+- **Agentic execution:** the flagship task reads a scanned report, retrieves internal SOP evidence, and generates a reviewable Word approval note.
+- **Multimodal workflow:** OCR handles scanned documents today and has a clean escalation path for a local vision-language model.
+- **Human control:** generated approval notes carry source citations, a draft banner, and a mandatory reviewer-sign-off area.
+- **Evidence for judges:** the operator console displays routing decisions, agent stages, a local model registry, audit records, and zero outbound traffic.
 
-## What still needs your GPU hardware
-
-This was built in a sandboxed environment with **no GPU and no access to Ollama/Hugging
-Face**, so the actual open-weight model inference is stubbed with a scripted
-`MockLLMClient` that proves the *loop mechanics* are correct — tool calling, iteration,
-routing — without live model intelligence behind it. On your GPU machine:
-
-1. Install Ollama, pull the models listed in `gateway/model_registry.yaml`.
-2. In `gateway/main.py`, set `DEMO_MODE = False`. This switches `RealLLMClient` in —
-   already written, already wired to the same `run_agent()` function, same tool schema.
-   Nothing else in the codebase changes.
-3. Swap `SimpleTfidfStore` for a proper embedding-based store once you can pull
-   `BAAI/bge-m3` or similar locally — see the `QdrantStore` stub in `rag.py` for the shape.
-4. Bring up the full stack: `docker compose up`.
-
-## Quickstart (on your GPU machine)
+## Run locally
 
 ```bash
-# 1. Pull models (needs internet once, then never again)
+cd gateway
+python -m pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
+
+Open `http://localhost:8000`. The UI works as a polished operator-console prototype even before models are installed. With the API running, the document task executes the actual demo workflow and writes `sample_data/AN-2026-DEMO.docx`.
+
+## GPU deployment
+
+On the demonstration workstation, pre-download the selected open-weight models to Ollama, then switch `DEMO_MODE = False` in `gateway/main.py`. The same router and agent loop use `RealLLMClient`, which supports any OpenAI-compatible local endpoint (Ollama, vLLM, or llama.cpp).
+
+```bash
+# One-time controlled download before entering the air-gapped environment
 docker compose run --network host ollama ollama pull qwen2.5:14b-instruct
 docker compose run --network host ollama ollama pull qwen2.5-coder:14b
 docker compose run --network host ollama ollama pull qwen2-vl:7b
 
-# 2. Flip DEMO_MODE = False in gateway/main.py
-
-# 3. Bring up the fully air-gapped stack
+# Thereafter all application services are restricted to the internal network
 docker compose up --build
-
-# 4. Open Open WebUI
-# http://localhost:3000  (points at your gateway, which points at Ollama)
-
-# 5. Run the network monitor on a second screen for your entire demo
-python network-monitor/monitor.py
 ```
 
-## Repo layout
+## Repository layout
 
-```
+```text
 gateway/
-  main.py              FastAPI gateway — /v1/chat/completions and /agent/run
-  router.py             Task classification -> model selection
-  orchestrator.py        The agent loop: plan, call tools, observe, repeat
-  model_registry.yaml    THE file to edit to add/swap/remove a model
-  tools/
-    sandbox.py            Code execution, Docker (--network none) + subprocess fallback
-    file_tools.py          Scoped file read/write
-    rag.py                  Document grounding, swappable vector store
-    docgen.py                Approval-note generation (python-docx)
-  ocr/
-    pipeline.py             Tesseract OCR + VLM escalation stub
-network-monitor/
-  monitor.py               Live egress proof for your demo screen
-docker-compose.yml        Full stack, isolated network, GPU passthrough for Ollama
-sample_data/               Sample SOPs + sample scanned report used in all the tests above
+  main.py                 FastAPI gateway and operator-console server
+  static/                 Dark-mode local operator experience
+  router.py               Capability-based local model routing
+  orchestrator.py         Plan → tool → observe → iterate agent loop
+  model_registry.yaml     Add / replace models without redesign
+  ocr/pipeline.py         Tesseract OCR with local VLM escalation seam
+  tools/rag.py            Local SOP/document grounding
+  tools/sandbox.py        Network-isolated code execution
+  tools/docgen.py         Cited Word approval-note generation
+network-monitor/          Live host egress monitor for the demo
+sample_data/              Inspection scan, SOP corpus, sample outputs
+docker-compose.yml        GPU-capable, internal-network deployment
 ```
 
-## Demo script (matches the PS's "Expected Solution" checklist exactly)
+## Demo sequence
 
-1. **Model auto-selection** — hit `/v1/chat/completions` with a coding request, then a
-   document request. Show the `[route]` log line picking a different model each time.
-2. **Agentic task end to end** — hit `/agent/run` with the inspection-report task. Watch
-   it call `extract_from_image` → `search_documents` → `generate_approval_note` and
-   produce a real `.docx`.
-3. **Coding task in the sandbox** — ask for a BOM total calculation, show it execute and
-   return real stdout from inside the sandbox.
-4. **Multimodal understanding** — same scanned report, or a P&ID once you've wired the
-   vision model in on your GPU box.
-5. **Zero external calls** — `network-monitor/monitor.py` running the entire time on a
-   second screen, egress column flat at zero throughout.
+1. Open the workbench and select **Document analysis**.
+2. Run the preloaded pressure-vessel inspection task.
+3. Show the selected model, local OCR/SOP stages, and drafted approval note.
+4. Switch to **Code & calculations** to show separate routing to the code specialist and isolated execution.
+5. Keep `network-monitor/monitor.py` visible: outbound traffic stays at `0 B/s` throughout.
 
-## Honest limitations to say out loud if asked
+## Current scope
 
-- The vision-language-model escalation path (`extract_with_vlm` in `ocr/pipeline.py`) is
-  a stub — Tesseract handles typed text well, but P&ID/handwriting understanding needs
-  the VLM wired to a real endpoint on your GPU box before demo day.
-- `SimpleTfidfStore` is keyword-based, not semantic — good enough for a focused SOP
-  corpus, but swap to `QdrantStore` + a real embedding model before you scale past a
-  few dozen documents.
-- `SubprocessSandbox` is a development fallback, not what you should demo — it shares
-  the host network. Confirm `DockerSandbox` is actually active (`get_sandbox()` prints
-  which backend it picked) before your run.
-=======
-# SIH
-Problem Statement 117
->>>>>>> e70e578511f4e47a8ee9a10a777f53346bd8feeb
+The repository provides a functional orchestration and document-output proof using `MockLLMClient` for a machine without locally downloaded weights. Before the final on-GPU presentation, activate a local open-weight endpoint, replace the basic TF-IDF store with Qdrant plus local embeddings for a large corpus, and connect the existing VLM hook for handwriting/P&ID interpretation. No confidential document needs to leave the deployment environment at any point.

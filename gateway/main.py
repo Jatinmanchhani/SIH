@@ -13,6 +13,7 @@ from a claim into something you can show a judge on screen in real time.
 from __future__ import annotations
 from pathlib import Path
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from router import load_registry, route
@@ -20,6 +21,7 @@ from orchestrator import run_agent, MockLLMClient, RealLLMClient
 from tools import rag
 
 app = FastAPI(title="Sovereign AI Workbench Gateway")
+STATIC_DIR = Path(__file__).parent / "static"
 
 registry = load_registry()
 rag_store = rag.SimpleTfidfStore()
@@ -87,3 +89,19 @@ def list_models():
 @app.get("/health")
 def health():
     return {"status": "ok", "demo_mode": DEMO_MODE}
+
+
+@app.get("/", include_in_schema=False)
+def workbench():
+    """The local-only operator console used for the SIH demonstration."""
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/app.js", include_in_schema=False)
+def workbench_script():
+    return FileResponse(STATIC_DIR / "app.js", media_type="text/javascript")
+
+
+@app.get("/styles.css", include_in_schema=False)
+def workbench_styles():
+    return FileResponse(STATIC_DIR / "styles.css", media_type="text/css")

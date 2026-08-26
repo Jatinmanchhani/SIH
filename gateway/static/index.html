@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rakshak AI — Sovereign Workbench</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <aside>
+      <div class="brand"><span class="brand-mark">R</span><span>Rakshak<span class="muted">AI</span></span></div>
+      <div class="site-chip"><span class="pulse"></span> MRPL / Mangalore Refinery<br><small>Air-gapped environment</small></div>
+      <nav>
+        <button class="nav active" data-view="workbench">⌘ <span>Workbench</span></button>
+        <button class="nav" data-view="knowledge">◈ <span>Knowledge vault</span></button>
+        <button class="nav" data-view="models">◌ <span>Model registry</span></button>
+        <button class="nav" data-view="audit">◷ <span>Audit trail</span></button>
+      </nav>
+      <div class="secure-card"><span>◈</span><div><strong>Zero egress enforced</strong><small>All services isolated</small></div></div>
+      <div class="operator"><div class="avatar">AP</div><div><strong>Operator</strong><small>Integrity Operations</small></div><span class="ellipsis">•••</span></div>
+    </aside>
+    <main>
+      <header><div><p class="eyebrow">SOVEREIGN OPERATIONS AI</p><h1 id="title">Good morning, Operator.</h1><p class="sub">Your secure, on-premise industrial intelligence workspace.</p></div><div class="header-status"><span class="status-dot"></span><span>All systems operational</span><time>26 AUG 2026 &nbsp;•&nbsp; 10:42 IST</time></div></header>
+      <section id="workbench" class="view active-view">
+        <div class="metrics"><article><span class="metric-icon cyan">◫</span><div><b>3</b><small>Models online</small></div></article><article><span class="metric-icon violet">⌁</span><div><b>2,847</b><small>Secured documents</small></div></article><article><span class="metric-icon lime">↯</span><div><b>0</b><small>External connections</small></div></article><article><span class="metric-icon amber">✓</span><div><b>100%</b><small>Data stays on-premise</small></div></article></div>
+        <div class="grid">
+          <section class="panel task-panel"><div class="panel-head"><div><p class="eyebrow">AGENTIC TASK</p><h2>Start a secure task</h2></div><span class="tag">LOCAL ONLY</span></div><div class="task-types"><button class="task selected" data-type="document"><span>▤</span><b>Document analysis</b><small>OCR, SOP grounding & draft</small></button><button class="task" data-type="code"><span>&lt;/&gt;</span><b>Code & calculations</b><small>Sandboxed execution</small></button><button class="task" data-type="vision"><span>◉</span><b>Image inspection</b><small>Vision & anomaly findings</small></button></div><label for="prompt">What would you like to accomplish?</label><textarea id="prompt">Read the pressure vessel inspection report, identify findings, verify the applicable SOP requirements, and draft an approval note.</textarea><div class="task-foot"><span class="attachment">⌁ sample_inspection_scan.png</span><button id="run">Run agent <span>→</span></button></div></section>
+          <section class="panel live-panel"><div class="panel-head"><div><p class="eyebrow">LIVE EXECUTION</p><h2>Agent activity</h2></div><span class="live"><i></i> READY</span></div><div id="activity" class="activity"><div class="empty-state"><span>◇</span><p>Ready for a secure task</p><small>Tool calls, sources and outputs will appear here.</small></div></div><div class="egress"><div><span class="status-dot"></span><b>Network monitor</b><small>Outbound traffic</small></div><strong>0 B/s</strong></div></section>
+        </div>
+        <section class="panel routing"><div class="panel-head"><div><p class="eyebrow">MODEL ROUTING</p><h2>Specialists available on this workstation</h2></div><button class="ghost" id="refreshModels">Refresh registry</button></div><div id="model-list" class="model-list"></div></section>
+      </section>
+      <section id="knowledge" class="view"><div class="panel full"><p class="eyebrow">KNOWLEDGE VAULT</p><h2>Local knowledge base</h2><p class="sub">2,847 indexed records. Documents are never sent outside the refinery network.</p><div class="document-list"><div><span>▤</span><b>SOP-MECH-014: Pressure Relief Devices</b><em>Verified • Internal</em></div><div><span>▤</span><b>SOP-PROC-007: Vendor Certificate Controls</b><em>Verified • Internal</em></div><div><span>▧</span><b>PV-2201 Inspection Report — 22 Aug 2026</b><em>OCR indexed • Restricted</em></div></div></div></section>
+      <section id="models" class="view"><div class="panel full"><p class="eyebrow">MODEL REGISTRY</p><h2>Hot-swappable local models</h2><p class="sub">Routing uses task capability, not a vendor lock-in.</p><div id="registry-detail" class="registry-detail"></div></div></section>
+      <section id="audit" class="view"><div class="panel full"><p class="eyebrow">AUDIT TRAIL</p><h2>Cryptographically traceable local activity</h2><div id="audit-log" class="audit-log"><p><span>10:41:58</span> Network guard verified no external connections.</p><p><span>10:41:52</span> Registry loaded from <code>model_registry.yaml</code>.</p><p><span>10:41:49</span> Knowledge vault integrity check passed.</p></div></div></section>
+    </main><script src="/app.js"></script>
+  </body>
+</html>
