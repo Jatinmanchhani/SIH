@@ -1,0 +1,70 @@
+# Full deployment stack for your GPU machine. Not runnable in a sandbox with no
+# GPU/Docker daemon — this is what you bring up on the actual demo hardware.
+#
+# Network isolation: every service below is on `airgap_net`, which has no
+# external gateway. The ONLY way anything here could reach the internet is if
+# you explicitly add a second network to a service — don't.
+
+networks:
+  airgap_net:
+    driver: bridge
+    internal: true   # <-- the actual enforcement: no route out, ever
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    networks: [airgap_net]
+    volumes:
+      - ollama_models:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # First run only (needs temporary internet to pull weights once):
+    #   docker compose run --network host ollama ollama pull qwen2.5:14b-instruct
+    #   docker compose run --network host ollama ollama pull qwen2.5-coder:14b
+    #   docker compose run --network host ollama ollama pull qwen2-vl:7b
+    # After that, this service runs fully on airgap_net with no route out.
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    networks: [airgap_net]
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  gateway:
+    build: ./gateway
+    networks: [airgap_net]
+    ports:
+      - "8000:8000"   # only port exposed to the host machine itself
+    volumes:
+      - ./sample_data:/app/sample_data
+      - ./workspace:/app/workspace
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434/v1
+      - QDRANT_URL=http://qdrant:6333
+    depends_on: [ollama, qdrant]
+
+  sandbox-runner:
+    image: python:3.11-slim
+    networks: []          # deliberately on NO network at all
+    command: ["sleep", "infinity"]   # base image the DockerSandbox tool launches into
+
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    networks: [airgap_net]
+    ports:
+      - "3000:8080"
+    environment:
+      - OPENAI_API_BASE_URL=http://gateway:8000/v1
+    depends_on: [gateway]
+    volumes:
+      - openwebui_data:/app/backend/data
+
+volumes:
+  ollama_models:
+  qdrant_data:
+  openwebui_data:

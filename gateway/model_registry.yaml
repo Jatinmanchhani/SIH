@@ -1,0 +1,51 @@
+# Model registry — the ONE file you edit to add, swap, or remove a model.
+# Nothing else in the codebase needs to change when a new open-weight model ships.
+#
+# endpoint: any OpenAI-compatible /v1/chat/completions URL (Ollama, vLLM, llama.cpp server all work)
+# task_tags: which task types the router may send to this model
+# supports_tools: whether this model can do function/tool calling (required for the orchestrator role)
+# priority: lower number = preferred when multiple models share a tag
+
+models:
+  orchestrator:
+    display_name: "Orchestrator (planner)"
+    endpoint: "http://localhost:11434/v1"   # Ollama default port; change per engine
+    model_name: "qwen2.5:32b-instruct"       # swap for whatever you actually pulled
+    task_tags: ["orchestrate"]
+    supports_tools: true
+    priority: 1
+
+  coding:
+    display_name: "Coding specialist"
+    endpoint: "http://localhost:11434/v1"
+    model_name: "qwen2.5-coder:14b"
+    task_tags: ["code"]
+    supports_tools: true
+    priority: 1
+
+  vision:
+    display_name: "Reading / vision specialist"
+    endpoint: "http://localhost:11434/v1"
+    model_name: "qwen2-vl:7b"
+    task_tags: ["vision", "ocr"]
+    supports_tools: false
+    priority: 1
+
+  reasoning:
+    display_name: "Reasoning / document specialist"
+    endpoint: "http://localhost:11434/v1"
+    model_name: "qwen2.5:14b-instruct"
+    task_tags: ["reasoning", "document", "general"]
+    supports_tools: true
+    priority: 1
+
+# --- Example of adding a NEW model later, e.g. a fresher coding model ---
+# Just append a block like this. No other file changes.
+#
+#  coding_v2:
+#    display_name: "Coding specialist v2"
+#    endpoint: "http://localhost:11434/v1"
+#    model_name: "some-new-coder:2026"
+#    task_tags: ["code"]
+#    supports_tools: true
+#    priority: 0   # lower number wins over the old "coding" entry

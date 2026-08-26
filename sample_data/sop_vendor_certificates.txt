@@ -1,0 +1,29 @@
+SOP-PROC-007: Vendor Certificate Validity and Onboarding Exceptions
+
+1. Purpose
+Defines the handling of vendor compliance certificates (GST registration, ISO 9001,
+material test certificates, welder qualification certificates) during onboarding and
+periodic revalidation.
+
+2. Standard Validity Rule
+A vendor certificate presented as part of onboarding or a purchase order release must
+have at least 30 days of remaining validity from the date of submission. Certificates
+expiring within 30 days shall be flagged "conditional" and routed for renewal
+confirmation before the vendor is marked active in the vendor master.
+
+3. Expired Certificate Handling
+If a vendor certificate has expired at the time of review:
+  a. The vendor record shall be held in "on-hold" status; no new purchase orders may
+     be released against it.
+  b. Procurement shall issue a renewal request to the vendor with a 10 working day
+     response window.
+  c. If no renewed certificate is received within the window, the vendor is escalated
+     to the category manager for a sourcing risk review.
+  d. An exception to proceed with an expired certificate requires written sign-off from
+     the Procurement Head and is valid for a single purchase order only, not a blanket
+     waiver.
+
+4. Documentation Requirement
+Every exception approval must be logged in the vendor exception register with: vendor
+ID, certificate type, expiry date, business justification, approver name, and the PO
+number the exception applies to.

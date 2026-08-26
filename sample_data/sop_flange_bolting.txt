@@ -1,0 +1,30 @@
+SOP-MECH-014: Flange Bolting and Torque Procedure
+
+1. Scope
+This procedure covers bolted flange joint assembly for process piping rated Class 150
+through Class 900, excluding gasket-specific low-torque joints covered under SOP-MECH-019.
+
+2. Torque Specification
+Standard carbon steel flange bolts (ASTM A193 B7 studs with A194 2H nuts) shall be
+torqued in a minimum of three passes using the star (cross) pattern:
+  Pass 1: 30% of final target torque
+  Pass 2: 60% of final target torque
+  Pass 3: 100% of final target torque
+Final target torque for 3/4 inch studs on Class 300 flanges is 420 N-m. For 1 inch studs
+on Class 600 flanges, final target torque is 610 N-m. Refer to Table 4 of the master
+torque chart for all other stud sizes and pressure classes.
+
+3. Lubrication
+All studs and nut faces shall be lubricated with an approved anti-seize compound prior
+to assembly. Dry torqueing is not permitted; it produces unreliable preload and is a
+recurring root cause in the joint leak log.
+
+4. Verification
+A calibrated torque wrench (calibration valid within 90 days) is mandatory. Hand-tight
+plus impact wrench finishing is not an acceptable substitute for calibrated torque
+verification on any Class 300 or higher joint.
+
+5. Documentation
+The fitter shall record stud size, target torque, pattern used, and wrench calibration
+ID on the joint completion checklist (Form MECH-014-A) before the joint is released for
+hydro test.
