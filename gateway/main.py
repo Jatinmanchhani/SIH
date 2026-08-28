@@ -18,7 +18,7 @@ from pydantic import BaseModel
 
 from router import load_registry, route
 from orchestrator import run_agent, MockLLMClient, RealLLMClient
-from tools import rag
+import rag
 
 app = FastAPI(title="Sovereign AI Workbench Gateway")
 STATIC_DIR = Path(__file__).parent / "static"
@@ -31,6 +31,15 @@ rag.ingest_directory(rag_store, Path(__file__).parent.parent / "sample_data")
 # on your GPU box. Everything downstream (routing, tool execution, logging) is
 # already wired for that swap — see README.md.
 DEMO_MODE = True
+
+# The real vision-model client, built once at startup from the registry. Stays
+# None in DEMO_MODE (or if Ollama isn't reachable), in which case OCR alone
+# still answers — nothing breaks, it just won't understand diagrams/handwriting.
+vlm_client = None
+if not DEMO_MODE:
+    from openai import OpenAI
+    vision_entry = registry["vision"]
+    vlm_client = OpenAI(base_url=vision_entry.endpoint, api_key="not-needed-locally")
 
 
 class ChatRequest(BaseModel):
@@ -73,7 +82,11 @@ def agent_run(req: AgentRequest):
         base_url=registry["orchestrator"].endpoint,
         model=registry["orchestrator"].model_name,
     )
-    result = run_agent(req.task, llm, rag_store)
+    result = run_agent(
+        req.task, llm, rag_store,
+        vlm_client=vlm_client,
+        vision_model_name=registry["vision"].model_name,
+    )
     return {"result": result, "demo_mode": DEMO_MODE}
 
 

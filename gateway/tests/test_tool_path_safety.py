@@ -2,7 +2,7 @@ import json
 import pytest
 
 from orchestrator import execute_tool, _resolve_in_sample_data, SAMPLE_DATA_ROOT
-from tools import file_tools, rag
+import file_tools, rag
 
 
 @pytest.fixture
