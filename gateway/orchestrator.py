@@ -24,7 +24,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol, Any
 
-from tools import sandbox, file_tools, rag, docgen
+import sandbox
+import file_tools
+import rag
+import docgen
 from ocr import pipeline as ocr_pipeline
 
 MAX_ITERATIONS = 8
@@ -116,7 +119,13 @@ TOOL_SCHEMA = [
 
 
 # --- Tool dispatch ------------------------------------------------------------
-def execute_tool(name: str, args: dict[str, Any], rag_store: rag.VectorStore) -> str:
+def execute_tool(
+    name: str,
+    args: dict[str, Any],
+    rag_store: rag.VectorStore,
+    vlm_client=None,
+    vision_model_name: str = "llava:7b",
+) -> str:
     if name == "extract_from_image":
         try:
             path = _resolve_in_sample_data(args["relative_path"])
@@ -124,8 +133,10 @@ def execute_tool(name: str, args: dict[str, Any], rag_store: rag.VectorStore) ->
             return json.dumps({"error": str(e)})
         if not path.exists():
             return json.dumps({"error": f"'{args['relative_path']}' not found in sample_data"})
-        result = ocr_pipeline.extract(path)
-        return json.dumps({"text": result.text, "confidence": result.mean_confidence})
+        # vlm_client is None in DEMO_MODE or if no vision model is pulled yet —
+        # extract() falls back to OCR-only in that case, same behavior as before.
+        result = ocr_pipeline.extract(path, vlm_client=vlm_client, vision_model_name=vision_model_name)
+        return json.dumps({"text": result.text, "confidence": result.mean_confidence, "method": result.method})
 
     if name == "search_documents":
         hits = rag_store.search(args["query"], k=3)
@@ -250,7 +261,13 @@ class MockLLMClient:
 
 
 # --- The agent loop itself ----------------------------------------------------
-def run_agent(user_task: str, llm: LLMClient, rag_store: rag.VectorStore) -> str:
+def run_agent(
+    user_task: str,
+    llm: LLMClient,
+    rag_store: rag.VectorStore,
+    vlm_client=None,
+    vision_model_name: str = "llava:7b",
+) -> str:
     messages = [
         {"role": "system", "content": (
             "You are an industrial operations assistant. Use tools to gather real "
@@ -275,7 +292,8 @@ def run_agent(user_task: str, llm: LLMClient, rag_store: rag.VectorStore) -> str
         ]})
         for tc in response.tool_calls:
             print(f"  [iteration {i+1}] calling tool: {tc.name}({tc.arguments})")
-            result = execute_tool(tc.name, tc.arguments, rag_store)
+            result = execute_tool(tc.name, tc.arguments, rag_store,
+                                   vlm_client=vlm_client, vision_model_name=vision_model_name)
             messages.append({"role": "tool", "tool_call_id": tc.id, "content": result})
 
     return "(stopped: exceeded MAX_ITERATIONS without a final answer — check for a looping tool call)"
