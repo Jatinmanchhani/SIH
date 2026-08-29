@@ -11,8 +11,9 @@ from a claim into something you can show a judge on screen in real time.
 """
 
 from __future__ import annotations
+import shutil
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -30,13 +31,21 @@ rag.ingest_directory(rag_store, Path(__file__).parent.parent / "sample_data")
 # Swap this for RealLLMClient(base_url=..., model=...) once Ollama/vLLM is running
 # on your GPU box. Everything downstream (routing, tool execution, logging) is
 # already wired for that swap — see README.md.
-DEMO_MODE = True
+DEMO_MODE = False
 
 # The real vision-model client, built once at startup from the registry. Stays
 # None in DEMO_MODE (or if Ollama isn't reachable), in which case OCR alone
 # still answers — nothing breaks, it just won't understand diagrams/handwriting.
+#
+# VISION_ENABLED is off because no vision model is pulled yet (registry's 'vision'
+# entry points at qwen2-vl:7b, which isn't downloaded). With vlm_client=None the
+# OCR pipeline never tries to call a missing model — the vision button still
+# works, answered by Tesseract alone. Pull qwen2-vl:7b (or llava:7b, updating the
+# registry) and flip this to True to light up real diagram/handwriting reading.
+VISION_ENABLED = False
+
 vlm_client = None
-if not DEMO_MODE:
+if not DEMO_MODE and VISION_ENABLED:
     from openai import OpenAI
     vision_entry = registry["vision"]
     vlm_client = OpenAI(base_url=vision_entry.endpoint, api_key="not-needed-locally")
@@ -88,6 +97,21 @@ def agent_run(req: AgentRequest):
         vision_model_name=registry["vision"].model_name,
     )
     return {"result": result, "demo_mode": DEMO_MODE}
+
+
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    """Saves an uploaded file into sample_data/, where extract_from_image and
+    search_documents already know to look. Path.name strips any directory
+    components from the filename the browser sends, the same defense
+    file_tools.py uses — an uploaded file can never write outside this folder."""
+    safe_name = Path(file.filename).name
+    dest_dir = Path(__file__).parent.parent / "sample_data"
+    dest_dir.mkdir(exist_ok=True)
+    dest_path = dest_dir / safe_name
+    with open(dest_path, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+    return {"filename": safe_name}
 
 
 @app.get("/models")

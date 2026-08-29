@@ -26,6 +26,7 @@ workspace/
 
 # Generated demo artifacts (keep the tracked samples in sample_data/, ignore fresh runs)
 sample_data/AN-*.docx
+sample_data/RO-*.docx
 
 # Test/coverage output
 .pytest_cache/
